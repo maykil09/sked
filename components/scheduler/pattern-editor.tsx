@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { OffDayPicker } from "@/components/scheduler/off-day-picker";
 import { PatternDayEditor } from "@/components/scheduler/pattern-day-editor";
 import { Button } from "@/components/ui/button";
@@ -41,23 +43,41 @@ export function PatternEditor({
   const cycleLength = draft.pattern.length;
   const workCount = draft.pattern.filter((day) => day.kind !== "off").length;
   const offCount = draft.pattern.filter((day) => day.kind === "off").length;
+  const [focusedCount, setFocusedCount] = useState<"work" | "off" | null>(null);
+  const [workInput, setWorkInput] = useState(String(workCount));
+  const [offInput, setOffInput] = useState(String(offCount));
   const dates =
     isValidISODate(draft.anchorDate) && canFitInitialCycle(draft.anchorDate, cycleLength)
       ? firstCycleDates(draft.anchorDate, cycleLength)
       : [];
 
-  function updateCount(nextWork: number, nextOff: number) {
-    if (
-      !Number.isInteger(nextWork) ||
-      !Number.isInteger(nextOff) ||
-      nextWork < 0 ||
-      nextOff < 0
-    ) {
-      return;
-    }
+  function parseCount(value: string): number | null {
+    if (value.trim() === "") return null;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 0) return null;
+    return parsed;
+  }
+
+  function applyCount(nextWork: number, nextOff: number) {
     const nextLength = nextWork + nextOff;
-    if (nextLength < MIN_CYCLE_LENGTH || nextLength > MAX_CYCLE_LENGTH) return;
+    if (nextLength < MIN_CYCLE_LENGTH || nextLength > MAX_CYCLE_LENGTH) return false;
+    if (nextWork === workCount && nextOff === offCount) return true;
     onApplyRotation(nextWork, nextOff);
+    return true;
+  }
+
+  function commitWork() {
+    const nextWork = parseCount(workInput);
+    const applied = nextWork != null && applyCount(nextWork, offCount);
+    setWorkInput(String(applied && nextWork != null ? nextWork : workCount));
+    setFocusedCount(null);
+  }
+
+  function commitOff() {
+    const nextOff = parseCount(offInput);
+    const applied = nextOff != null && applyCount(workCount, nextOff);
+    setOffInput(String(applied && nextOff != null ? nextOff : offCount));
+    setFocusedCount(null);
   }
 
   return (
@@ -75,14 +95,23 @@ export function PatternEditor({
           <FieldLabel htmlFor="work-days">Work days</FieldLabel>
           <Input
             id="work-days"
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={0}
-            max={MAX_CYCLE_LENGTH}
-            value={workCount}
-            onChange={(event) => {
-              if (event.target.value === "") return;
-              updateCount(Number(event.target.value), offCount);
+            autoComplete="off"
+            enterKeyHint="done"
+            pattern="[0-9]*"
+            value={focusedCount === "work" ? workInput : String(workCount)}
+            onFocus={() => {
+              setWorkInput(String(workCount));
+              setFocusedCount("work");
+            }}
+            onChange={(event) => setWorkInput(event.target.value.replace(/[^\d]/g, ""))}
+            onBlur={commitWork}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
             }}
           />
         </Field>
@@ -90,14 +119,23 @@ export function PatternEditor({
           <FieldLabel htmlFor="off-days">Off days</FieldLabel>
           <Input
             id="off-days"
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={0}
-            max={MAX_CYCLE_LENGTH}
-            value={offCount}
-            onChange={(event) => {
-              if (event.target.value === "") return;
-              updateCount(workCount, Number(event.target.value));
+            autoComplete="off"
+            enterKeyHint="done"
+            pattern="[0-9]*"
+            value={focusedCount === "off" ? offInput : String(offCount)}
+            onFocus={() => {
+              setOffInput(String(offCount));
+              setFocusedCount("off");
+            }}
+            onChange={(event) => setOffInput(event.target.value.replace(/[^\d]/g, ""))}
+            onBlur={commitOff}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
             }}
           />
         </Field>
