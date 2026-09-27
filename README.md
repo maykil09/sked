@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sked
 
-## Getting Started
+A personal recurring scheduler. You enter a start date and a seven-day work/off pattern once. Every later date is calculated from that original start date, including dates in later months and years.
 
-First, run the development server:
+The site is a static Next.js export. There is no application backend, database, or scheduling service.
+
+## Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Local development server |
+| `npm run test` | Recurrence and validation unit tests |
+| `npm run lint` | ESLint |
+| `npm run build` | Production static export to `out/` |
 
-## Learn More
+## Build and deploy
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Publish the contents of `out/` on any static host over HTTPS. Do not use `next start` as the production model, and do not open `out/index.html` as a file URL if you need reliable browser storage.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+No API base URL, database credential, or environment secret is required.
 
-## Deploy on Vercel
+## Storage
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Browser key: `recurring-scheduler:data`
+- Schema version: `1`
+- One local schedule per browser origin
+- JSON backup/restore is the supported way to copy a schedule to another device or browser profile
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Clearing site data, using another device, or changing origin does not keep the schedule. A backup file is not encrypted.
+
+## Tests
+
+```bash
+npm test
+```
+
+The unit tests cover the documented recurrence fixtures, leap days, non-Monday anchors, end dates, and overnight shift rules.
